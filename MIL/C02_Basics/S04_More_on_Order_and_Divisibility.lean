@@ -39,17 +39,82 @@ example : min a b = min b a := by
     apply min_le_left
 
 example : max a b = max b a := by
-  sorry
+  apply ge_antisymm
+  · -- max b a ≤ max a b
+    apply max_le
+    apply le_max_right
+    apply le_max_left
+  · --max a b ≤ max b a
+    apply max_le
+    apply le_max_right
+    apply le_max_left
+
 example : min (min a b) c = min a (min b c) := by
-  sorry
+  apply le_antisymm
+  · -- min (min a b) c ≤ min a (min b c)
+    apply le_min
+    · --min (min a b) c ≤ a
+      have h1: (min a b) ≤ a := by
+        apply min_le_left
+      have h2: min (min a b) c ≤ min a b := by
+        apply min_le_left
+      apply le_trans h2 h1
+    · --min (min a b) c ≤ min b c
+      apply le_min
+      have h1: (min a b) ≤ b := by
+        apply min_le_right
+      have h2: min (min a b) c ≤ min a b := by
+        apply min_le_left
+      apply le_trans h2 h1
+      apply min_le_right
+  · --min a (min b c) ≤ min (min a b) c
+    apply le_min
+    · --min a (min b c) ≤ min a b
+      apply le_min
+      apply min_le_left
+      have h1: min a (min b c) ≤ min b c := by
+        apply min_le_right
+      have h2: min b c ≤ b := by apply min_le_left
+      apply le_trans h1 h2
+    · --min a (min b c) ≤ c
+      have h1: min a (min b c) ≤ min b c := by
+        apply min_le_right
+      have h2: min b c ≤ c := by
+        apply min_le_right
+      apply le_trans h1 h2
+
 theorem aux : min a b + c ≤ min (a + c) (b + c) := by
-  sorry
+  apply le_min
+  · --min a b + c ≤ a + c
+    apply add_le_add_right
+    apply min_le_left
+  · --min a b + c + c ≤ b + c
+    apply add_le_add_right
+    apply min_le_right
+
 example : min a b + c = min (a + c) (b + c) := by
-  sorry
+  apply le_antisymm
+  · apply aux
+  · --min (a + c) (b + c) ≤ min a b + c
+    have h1 := aux (a + c) (b + c) (-c)
+    have h2 : min (a + c) (b + c) = min (a + c) (b + c) + c + -c := by rw [add_neg_cancel_right]
+    rw [h2, add_right_comm]
+    apply add_le_add_right
+    apply le_trans h1
+    ring_nf
+    linarith
+
 #check (abs_add : ∀ a b : ℝ, |a + b| ≤ |a| + |b|)
 
-example : |a| - |b| ≤ |a - b| :=
-  sorry
+example : |a| - |b| ≤ |a - b| := by
+  -- |a| ≤ |a - b| + |b|
+  have h1 := by apply abs_add (a - b) b
+  ring_nf at h1
+  have h2: |a| + -|b| ≤ |a - b| + |b| + -|b| := by
+    apply add_le_add_right
+    apply h1
+  ring_nf at h2
+  apply h2
 end
 
 section
@@ -66,7 +131,14 @@ example : x ∣ x ^ 2 := by
   apply dvd_mul_left
 
 example (h : x ∣ w) : x ∣ y * (x * z) + x ^ 2 + w ^ 2 := by
-  sorry
+  apply dvd_add
+  · apply dvd_add
+    apply dvd_mul_of_dvd_right
+    apply dvd_mul_right
+    apply dvd_mul_left
+  · apply dvd_pow
+    apply h
+    linarith
 end
 
 section
@@ -78,7 +150,13 @@ variable (m n : ℕ)
 #check (Nat.lcm_zero_left n : Nat.lcm 0 n = 0)
 
 example : Nat.gcd m n = Nat.gcd n m := by
-  sorry
+  apply dvd_antisymm
+  · --m.gcd n | n.gcd m
+    apply dvd_gcd
+    apply gcd_dvd_right
+    apply gcd_dvd_left
+  · --n.gcd m | m.gcd n
+    apply dvd_gcd
+    apply gcd_dvd_right
+    apply gcd_dvd_left
 end
-
-
