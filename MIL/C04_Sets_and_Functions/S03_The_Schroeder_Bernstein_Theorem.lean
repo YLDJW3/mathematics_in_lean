@@ -28,10 +28,13 @@ theorem sb_right_inv {x : α} (hx : x ∉ sbSet f g) : g (invFun g x) = x := by
     rw [sbSet, mem_iUnion]
     use 0
     rw [sbAux, mem_diff]
-    sorry
+    constructor
+    · trivial
+    · exact hx
   have : ∃ y, g y = x := by
-    sorry
-  sorry
+    simp at this
+    apply this
+  apply invFun_eq this
 
 theorem sb_injective (hf : Injective f) : Injective (sbFun f g) := by
   set A := sbSet f g with A_def
@@ -41,45 +44,66 @@ theorem sb_injective (hf : Injective f) : Injective (sbFun f g) := by
   show x₁ = x₂
   simp only [h_def, sbFun, ← A_def] at hxeq
   by_cases xA : x₁ ∈ A ∨ x₂ ∈ A
-  · wlog x₁A : x₁ ∈ A generalizing x₁ x₂ hxeq xA
-    · symm
+  · -- x1 ∈ A ∨ x2 ∈ A
+    wlog x₁A : x₁ ∈ A generalizing x₁ x₂ hxeq xA
+    · -- x₁ ∉ A
+      symm
       apply this hxeq.symm xA.symm (xA.resolve_left x₁A)
-    have x₂A : x₂ ∈ A := by
-      apply _root_.not_imp_self.mp
-      intro (x₂nA : x₂ ∉ A)
-      rw [if_pos x₁A, if_neg x₂nA] at hxeq
-      rw [A_def, sbSet, mem_iUnion] at x₁A
-      have x₂eq : x₂ = g (f x₁) := by
-        sorry
-      rcases x₁A with ⟨n, hn⟩
-      rw [A_def, sbSet, mem_iUnion]
-      use n + 1
-      simp [sbAux]
-      exact ⟨x₁, hn, x₂eq.symm⟩
-    sorry
-  push_neg at xA
-  sorry
+    · --x₁ ∈ A
+      have x₂A : x₂ ∈ A := by
+        apply _root_.not_imp_self.mp
+        intro (x₂nA : x₂ ∉ A)
+        rw [if_pos x₁A, if_neg x₂nA] at hxeq
+        rw [A_def, sbSet, mem_iUnion] at x₁A
+        have x₂eq : x₂ = g (f x₁) := by
+          rw [hxeq]
+          symm
+          apply sb_right_inv
+          rw [A_def] at x₂nA
+          apply x₂nA
+        rcases x₁A with ⟨n, hn⟩
+        rw [A_def, sbSet, mem_iUnion]
+        use n + 1
+        simp [sbAux]
+        exact ⟨x₁, hn, x₂eq.symm⟩
+      rw [if_pos x₁A, if_pos x₂A] at hxeq
+      apply hf
+      apply hxeq
+  · -- ¬(x1 ∈ A ∨ x2 ∈ A)
+    push_neg at xA
+    rw [if_neg xA.left, if_neg xA.right] at hxeq
+    rw [A_def] at xA
+    rcases xA with ⟨ h1, h2 ⟩
+    apply sb_right_inv at h1
+    apply sb_right_inv at h2
+    rw [← h1, ← h2, hxeq]
 
 theorem sb_surjective (hg : Injective g) : Surjective (sbFun f g) := by
   set A := sbSet f g with A_def
   set h := sbFun f g with h_def
   intro y
   by_cases gyA : g y ∈ A
-  · rw [A_def, sbSet, mem_iUnion] at gyA
+  · -- g y ∈ A
+    rw [A_def, sbSet, mem_iUnion] at gyA
     rcases gyA with ⟨n, hn⟩
     rcases n with _ | n
-    · simp [sbAux] at hn
-    simp [sbAux] at hn
-    rcases hn with ⟨x, xmem, hx⟩
-    use x
-    have : x ∈ A := by
-      rw [A_def, sbSet, mem_iUnion]
-      exact ⟨n, xmem⟩
-    rw [h_def, sbFun, if_pos this]
-    apply hg hx
-
-  sorry
-
+    · -- n = 0
+      simp [sbAux] at hn
+    · -- n > 0
+      simp [sbAux] at hn
+      rcases hn with ⟨x, xmem, hx⟩
+      use x
+      have : x ∈ A := by
+        rw [A_def, sbSet, mem_iUnion]
+        exact ⟨n, xmem⟩
+      rw [h_def, sbFun, if_pos this]
+      apply hg hx
+  · --  g y ∉ A
+    rw [A_def] at gyA
+    use g y
+    rw [h_def, sbFun, if_neg gyA]
+    apply leftInverse_invFun
+    apply hg
 end
 
 theorem schroeder_bernstein {f : α → β} {g : β → α} (hf : Injective f) (hg : Injective g) :
