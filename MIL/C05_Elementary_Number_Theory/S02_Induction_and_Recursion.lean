@@ -29,26 +29,49 @@ example (n : ℕ) : fac (n + 1) = (n + 1) * fac n := by
 example (n : ℕ) : fac (n + 1) = (n + 1) * fac n := by
   simp [fac]
 
+#check Nat.factorial
+
 theorem fac_pos (n : ℕ) : 0 < fac n := by
   induction' n with n ih
-  · rw [fac]
+  · -- n = 0
+    rw [fac]
     exact zero_lt_one
-  rw [fac]
-  exact mul_pos n.succ_pos ih
+  · -- n > 0
+    rw [fac]
+    exact mul_pos n.succ_pos ih
 
 theorem dvd_fac {i n : ℕ} (ipos : 0 < i) (ile : i ≤ n) : i ∣ fac n := by
   induction' n with n ih
-  · exact absurd ipos (not_lt_of_ge ile)
-  rw [fac]
-  rcases Nat.of_le_succ ile with h | h
-  · apply dvd_mul_of_dvd_right (ih h)
-  rw [h]
-  apply dvd_mul_right
+  · -- n = 0
+    exact absurd ipos (not_lt_of_ge ile)
+  · -- n > 0
+    rw [fac]
+    rcases Nat.of_le_succ ile with h | h
+    · -- i ≤ n
+      apply dvd_mul_of_dvd_right (ih h)
+    · -- i = n + 1
+      rw [h]
+      apply dvd_mul_right
 
 theorem pow_two_le_fac (n : ℕ) : 2 ^ (n - 1) ≤ fac n := by
   rcases n with _ | n
-  · simp [fac]
-  sorry
+  · -- 0
+    simp [fac]
+  · -- n + 1
+    induction' n with n ih
+    · -- base case
+      rw [fac]
+      ring_nf
+      apply le_refl
+    · --induction case
+      simp at *
+      rw [pow_succ', fac]
+      apply mul_le_mul
+      linarith
+      assumption
+      apply pow_nonneg
+      repeat linarith
+
 section
 
 variable {α : Type*} (s : Finset ℕ) (f : ℕ → ℕ) (n : ℕ)
@@ -94,12 +117,20 @@ example (a b c d e f : ℕ) : a * (b * c * f * (d * e)) = d * (a * f * e) * (c *
 theorem sum_id (n : ℕ) : ∑ i ∈ range (n + 1), i = n * (n + 1) / 2 := by
   symm; apply Nat.div_eq_of_eq_mul_right (by norm_num : 0 < 2)
   induction' n with n ih
-  · simp
-  rw [Finset.sum_range_succ, mul_add 2, ← ih]
-  ring
+  · -- base
+    simp
+  · -- induction
+    rw [Finset.sum_range_succ, mul_add 2, ← ih]
+    ring
 
 theorem sum_sqr (n : ℕ) : ∑ i ∈ range (n + 1), i ^ 2 = n * (n + 1) * (2 * n + 1) / 6 := by
-  sorry
+  symm; apply Nat.div_eq_of_eq_mul_right (by linarith: 0 < 6)
+  induction' n with n ih
+  · --zero
+    ring_nf
+  · --succ
+    rw [Finset.sum_range_succ, mul_add 6, ← ih]
+    ring_nf
 end
 
 inductive MyNat where
@@ -134,13 +165,40 @@ theorem add_comm (m n : MyNat) : add m n = add n m := by
   rw [add, succ_add, ih]
 
 theorem add_assoc (m n k : MyNat) : add (add m n) k = add m (add n k) := by
-  sorry
+  induction' n with n ih
+  · --zero
+    rw [add, zero_add]
+  · --succ
+    rw [add, succ_add, succ_add, ih, add]
+
 theorem mul_add (m n k : MyNat) : mul m (add n k) = add (mul m n) (mul m k) := by
-  sorry
+  induction' n with n ih
+  · --zero
+    rw [zero_add, mul, zero_add]
+  · --succ
+    rw [succ_add, mul, ih]
+    rw [mul, add_assoc, add_assoc, add_comm m]
+
 theorem zero_mul (n : MyNat) : mul zero n = zero := by
-  sorry
+  induction'  n with n ih
+  · --zero
+    rfl
+  · --succ
+    rw [mul, ih]
+    rfl
+
 theorem succ_mul (m n : MyNat) : mul (succ m) n = add (mul m n) n := by
-  sorry
+  induction' n with n ih
+  · --zero
+    rw [mul, mul, add]
+  · --succ
+    rw [mul, ih, add, add, mul]
+    rw [add_assoc, add_assoc, add_comm n]
+
 theorem mul_comm (m n : MyNat) : mul m n = mul n m := by
-  sorry
+  induction' n with n ih
+  · --zero
+    rw [mul, zero_mul]
+  · --succ
+    rw [mul, succ_mul, ih]
 end MyNat

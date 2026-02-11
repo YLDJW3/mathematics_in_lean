@@ -112,7 +112,12 @@ theorem fib_add' : ∀ m n, fib (m + n + 1) = fib m * fib n + fib (m + 1) * fib 
     simp only [fib_add_two, Nat.succ_eq_add_one, this]
     ring
 
-example (n : ℕ): (fib n) ^ 2 + (fib (n + 1)) ^ 2 = fib (2 * n + 1) := by sorry
+example (n : ℕ): (fib n) ^ 2 + (fib (n + 1)) ^ 2 = fib (2 * n + 1) := by
+  have h := by apply fib_add n n
+  ring_nf at h
+  rw [add_comm, mul_comm] at h
+  rw [h, add_comm n]
+
 example (n : ℕ): (fib n) ^ 2 + (fib (n + 1)) ^ 2 = fib (2 * n + 1) := by
   rw [two_mul, fib_add, pow_two, pow_two]
 
@@ -126,7 +131,9 @@ theorem ne_one_iff_exists_prime_dvd : ∀ {n}, n ≠ 1 ↔ ∃ p : ℕ, p.Prime 
     have hn : n+2 ≠ 1 := by omega
     simp only [Ne, not_false_iff, true_iff, hn]
     by_cases h : Nat.Prime (n + 2)
-    · use n+2, h
+    · -- n+2 is prime
+      use n+2, h
+      -- n+2 is not prime
     · have : 2 ≤ n + 2 := by omega
       rw [Nat.not_prime_iff_exists_dvd_lt this] at h
       rcases h with ⟨m, mdvdn, mge2, -⟩
@@ -142,4 +149,3 @@ theorem zero_lt_of_mul_eq_one (m n : ℕ) : n * m = 1 → 0 < n ∧ 0 < m := by
 example (m n : ℕ) : n*m = 1 → 0 < n ∧ 0 < m := by
   rcases m with (_ | m); simp
   rcases n with (_ | n) <;> simp
-
