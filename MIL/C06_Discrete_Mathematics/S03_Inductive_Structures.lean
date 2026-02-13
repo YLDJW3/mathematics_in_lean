@@ -61,12 +61,36 @@ theorem map_map' (f : α → β) (g : β → γ) (as : List α) :
   . rfl
   . simp [map, ih]
 
-def reverse : List α → List α := sorry
+def reverse : List α → List α
+  | [] => []
+  | a :: as => reverse as ++ [a]
+
+lemma reverse_nil: reverse ([]: List α) = [] := by rfl
+
+lemma reverse_cons {α : Type*} (a : α) (as : List α): reverse (a :: as) = reverse as ++ [a] := by rfl
+
+lemma append_assoc {α : Type*} (as bs cs : List α): as ++ bs ++ cs = as ++ (bs ++ cs) := by
+  induction' as with ahead atail ih
+  · --[] case
+    rw [nil_append, nil_append]
+  · --cons case
+    rw [cons_append, cons_append, cons_append, ih]
 
 theorem reverse_append (as bs : List α) : reverse (as ++ bs) = reverse bs ++ reverse as := by
-  sorry
+  induction' as with ahead atail ih
+  · --[] case
+    rw [nil_append, reverse_nil, append_nil]
+  · --cons case
+    rw [cons_append, reverse_cons, ih, reverse_cons]
+    rw [append_assoc]
 
-theorem reverse_reverse (as : List α) : reverse (reverse as) = as := by sorry
+theorem reverse_reverse (as : List α) : reverse (reverse as) = as := by
+  induction' as with ahead atail ih
+  · -- []
+    repeat rw [reverse_nil]
+  · --cons
+    rw [reverse_cons, reverse_append, ih, reverse_cons, reverse_nil]
+    rfl
 
 end MyListSpace3
 
@@ -97,14 +121,31 @@ theorem size_le : ∀ t : BinTree, size t ≤ 2^depth t - 1
           have : 0 < 2 ^ max l.depth r.depth := by simp
           omega
 
-theorem depth_le_size : ∀ t : BinTree, depth t ≤ size t := by sorry
+theorem depth_le_size : ∀ t : BinTree, depth t ≤ size t := by
+  intro t
+  induction' t with l r hl hr
+  · -- empty
+    rw [size, depth]
+  · -- node
+    rw [depth, size]
+    omega
 
-def flip : BinTree → BinTree := sorry
+def flip : BinTree → BinTree
+  | empty => empty
+  | node l r => node (flip r) (flip l)
 
 example: flip  (node (node empty (node empty empty)) (node empty empty)) =
-    node (node empty empty) (node (node empty empty) empty) := sorry
+    node (node empty empty) (node (node empty empty) empty) := rfl
 
-theorem size_flip : ∀ t, size (flip t) = size t := by sorry
+theorem size_flip : ∀ t, size (flip t) = size t := by
+  intro t
+  induction' t with l r hl hr
+  · --empty
+    rw [flip, size]
+  · --node
+    simp [flip, size, hl, hr]
+    rw [add_comm]
+
 end BinTree
 
 inductive PropForm : Type where
@@ -152,9 +193,49 @@ def subst : PropForm → ℕ → PropForm → PropForm
   | impl A B, m, C => impl (A.subst m C) (B.subst m C)
 
 theorem subst_eq_of_not_mem_vars :
-    ∀ (A : PropForm) (n : ℕ) (C : PropForm), n ∉ A.vars → A.subst n C = A := sorry
+    ∀ (A : PropForm) (n : ℕ) (C : PropForm), n ∉ A.vars → A.subst n C = A := by
+    intro A
+    induction' A with n A B hA hB A B hA hB A B hA hB
+    · -- var
+      intro m C h
+      simp_all [subst, vars]
+      intro heq; symm at heq
+      contradiction
+    · --fls
+      intro n C h
+      simp_all [subst, vars]
+    · --conj
+      intro n C h
+      simp_all [subst, vars]
+    · --disj
+      intro n C h
+      simp_all [subst, vars]
+    · --impl
+      intro n C h
+      simp_all [subst, vars]
+
 
 theorem subst_eval_eq : ∀ (A : PropForm) (n : ℕ) (C : PropForm) (v : ℕ → Bool),
-  (A.subst n C).eval v = A.eval (fun m => if m = n then C.eval v else v m) := sorry
+  (A.subst n C).eval v = A.eval (fun m => if m = n then C.eval v else v m) := by
+  intro A
+  induction A with
+  | var n =>
+      intro m C v
+      simp_all [subst, eval]
+      by_cases h: n = m
+      · simp [h]
+      · simp [h, eval]
+  | fls =>
+      intro m C v
+      simp_all [subst, eval]
+  | conj A B =>
+      intro m C v
+      simp_all [subst, eval]
+  | disj A B =>
+      intro m C v
+      simp_all [subst, eval]
+  | impl A B =>
+      intro m C v
+      simp_all [subst, eval]
 
 end PropForm

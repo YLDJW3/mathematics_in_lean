@@ -42,8 +42,10 @@ end
 example (m n : ℕ) (h : m ≥ n) :
     card (range n ∪ (range n).image (fun i ↦ m + i)) = 2 * n := by
   rw [card_union_of_disjoint, card_range, card_image_of_injective, card_range]; omega
-  . apply add_right_injective
-  . simp [disjoint_iff_ne]; omega
+  . -- Function.Injective fun i ↦ m + i
+    apply add_right_injective
+  . -- Disjoint (range n) (image (fun i ↦ m + i) (range n))-
+    simp [disjoint_iff_ne]; omega
 
 def triangle (n : ℕ) : Finset (ℕ × ℕ) := {p ∈ range (n+1) ×ˢ range (n+1) | p.1 < p.2}
 
@@ -52,9 +54,11 @@ example (n : ℕ) : #(triangle n) = (n + 1) * n / 2 := by
     ext p
     simp only [triangle, mem_filter, mem_product, mem_range, mem_biUnion, mem_image]
     constructor
-    . rintro ⟨⟨hp1, hp2⟩, hp3⟩
+    . --(p.1 < n + 1 ∧ p.2 < n + 1) ∧ p.1 < p.2 → ∃ a < n + 1, ∃ a_1 < a, (a_1, a) = p
+      rintro ⟨⟨hp1, hp2⟩, hp3⟩
       use p.2, hp2, p.1, hp3
-    . rintro ⟨p1, hp1, p2, hp2, rfl⟩
+    . --(∃ a < n + 1, ∃ a_1 < a, (a_1, a) = p) → (p.1 < n + 1 ∧ p.2 < n + 1) ∧ p.1 < p.2
+      rintro ⟨p1, hp1, p2, hp2, rfl⟩
       omega
   rw [this, card_biUnion]; swap
   · -- take care of disjointness first
@@ -91,17 +95,86 @@ example (n : ℕ) : #(triangle n) = (n + 1) * n / 2 := by
   let turn (p : ℕ × ℕ) : ℕ × ℕ := (n - 1 - p.1, n - p.2)
   calc 2 * #(triangle n)
       = #(triangle n) + #(triangle n) := by
-          sorry
+        rw [two_mul]
     _ = #(triangle n) + #(triangle n |>.image turn) := by
-          sorry
+        simp
+        rw [card_image_of_injOn]
+        rintro ⟨x1, x2⟩  hx ⟨y1, y2⟩ hy heq
+        injection heq with h1 h2
+        repeat rw [Nat.sub_sub] at h1
+        have le1: 1 + x1 ≤ n := by
+          simp [triangle] at hx
+          linarith
+        have le2: 1 + y1 ≤ n := by
+          simp [triangle] at hy
+          linarith
+        have le3 : x2 ≤ n := by
+          simp [triangle] at hx
+          linarith
+        have le4 : y2 ≤ n := by
+          simp [triangle] at hy
+          linarith
+        rw [Nat.sub_eq_iff_eq_add le1] at h1
+        rw [← Nat.sub_add_comm le2] at h1
+        have heq1: x1 = y1 := by omega
+        rw [Nat.sub_eq_iff_eq_add le3] at h2
+        rw [← Nat.sub_add_comm le4] at h2
+        have heq2: x2 = y2 := by omega
+        rw [heq1, heq2]
     _ = #(range n ×ˢ range (n + 1)) := by
-          sorry
+      have : Disjoint (triangle n) (image turn (triangle n)) := by
+        rw [disjoint_iff_ne]
+        rintro ⟨x1, x2⟩ hx ⟨y1, y2⟩ hy heq
+        rw [triangle] at hx; simp at hx
+        unfold turn at hy; rw [triangle] at hy; simp at hy
+        rcases hy with ⟨ a, b, ⟨⟨h1, h2⟩, h3⟩ , h4, h5 ⟩
+        injection heq with heq1 heq2
+        omega
+      rw [← card_union_of_disjoint this]
+      -- #(triangle n ∪ image turn (triangle n)) = #(range n ×ˢ range (n + 1))
+      congr; ext ⟨ x, y ⟩
+      rw [triangle]; unfold turn; simp
+      constructor
+      · --(->)
+        rintro (⟨ ⟨h1, h2⟩ , h3 ⟩ | h)
+        omega
+        rcases h with ⟨ a, b, ⟨⟨h1, h2⟩, h3⟩ , h4, h5 ⟩
+        omega
+      · --(<-)
+        rintro ⟨h1, h2⟩
+        by_cases hxy: x < y
+        · --x < y
+          left; omega
+        · --x ≥ y
+          right; use n - 1 - x, n - y
+          omega
     _ = (n + 1) * n := by
-          sorry
+        rw [card_product, card_range, card_range, mul_comm]
 
 def triangle' (n : ℕ) : Finset (ℕ × ℕ) := {p ∈ range n ×ˢ range n | p.1 ≤ p.2}
 
-example (n : ℕ) : #(triangle' n) = #(triangle n) := by sorry
+example (n : ℕ) : #(triangle' n) = #(triangle n) := by
+  let f (p : ℕ × ℕ) : ℕ × ℕ := (p.1, p.2 + 1)
+  have : #(triangle' n) = #(triangle' n |>.image f) := by
+    rw [card_image_of_injOn]
+    rintro ⟨x1, x2⟩ hx ⟨y1, y2⟩ hy heq
+    unfold f at heq; simp at heq
+    rw [heq.left, heq.right]
+  have : #(image f (triangle' n)) = #(triangle n) := by
+    congr
+    rw [triangle, triangle']
+    ext ⟨ x, y ⟩; simp
+    constructor
+    · --(->)
+      rintro ⟨ a, b, h1, h2 ⟩
+      unfold f at h2; simp at h2
+      omega
+    · --(<-)
+      rintro ⟨ ⟨ h1, h2 ⟩, h3 ⟩
+      unfold f; simp
+      use x, y - 1
+      omega
+  omega
 
 section
 open Classical
@@ -129,8 +202,18 @@ example {n : ℕ} (A : Finset ℕ)
     ∃ m ∈ A, ∃ k ∈ A, Nat.Coprime m k := by
   have : ∃ t ∈ range n, 1 < #({u ∈ A | u / 2 = t}) := by
     apply exists_lt_card_fiber_of_mul_lt_card_of_maps_to
-    · sorry
-    · sorry
+    · -- ∀ a ∈ A, a / 2 ∈ range n
+      intro a ha
+      apply hA' at ha
+      simp at *
+      omega
+    · rw [hA]; simp
   rcases this with ⟨t, ht, ht'⟩
   simp only [one_lt_card, mem_filter] at ht'
-  sorry
+  rcases ht' with ⟨ a, ⟨ha1, ha2⟩, b, ⟨⟨hb1, hb2⟩, aneb⟩ ⟩
+  have: a = b + 1 ∨ b = a + 1 := by omega
+  use a
+  refine ⟨ha1, ?_⟩
+  use b
+  refine ⟨hb1, ?_⟩
+  rcases this with h | h <;> rw [h] <;> simp

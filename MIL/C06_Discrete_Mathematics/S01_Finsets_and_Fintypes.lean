@@ -95,10 +95,12 @@ example {α : Type*} [DecidableEq α] (f : α → ℕ)  (s : Finset α) (h : ∀
   | @insert a s anins ih =>
     rw [prod_insert anins]
     apply mul_ne_zero
-    · apply h; apply mem_insert_self
-    apply ih
-    intros x xs
-    exact h x (mem_insert_of_mem xs)
+    · -- f a ≠ 0
+      apply h; apply mem_insert_self
+    · -- ∏ x ∈ s, f x ≠ 0
+      apply ih
+      intros x xs
+      exact h x (mem_insert_of_mem xs)
 
 noncomputable example (s : Finset ℕ) (h : s.Nonempty) : ℕ := Classical.choose h
 
@@ -126,9 +128,9 @@ example : Finset.min' {2, 6, 7} ⟨6, by trivial⟩ = 2 := by trivial
 
 example (s : Finset ℕ) : s.card = #s := by rfl
 
-example (s : Finset ℕ) : s.card = ∑ i ∈ s, 1 := by rw [card_eq_sum_ones]
+example (s : Finset ℕ) : s.card = ∑ _ ∈ s, 1 := by rw [card_eq_sum_ones]
 
-example (s : Finset ℕ) : s.card = ∑ i ∈ s, 1 := by simp
+example (s : Finset ℕ) : s.card = ∑ _ ∈ s, 1 := by simp
 
 section
 variable {α : Type*} [Fintype α]
@@ -148,4 +150,3 @@ variable (s : Finset ℕ)
 example : (↑s : Type) = {x : ℕ // x ∈ s} := rfl
 example : Fintype.card ↑s = s.card := by simp
 end
-
