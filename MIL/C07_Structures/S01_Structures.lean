@@ -81,14 +81,14 @@ theorem addAlt_comm (a b : Point) : addAlt a b = addAlt b a := by
   repeat' apply add_comm
 
 protected theorem add_assoc (a b c : Point) : (a.add b).add c = a.add (b.add c) := by
-  sorry
+  simp [add, add_assoc]
 
 def smul (r : ℝ) (a : Point) : Point :=
-  sorry
+  ⟨ r * a.x, r * a.y, r * a.z ⟩
 
 theorem smul_distrib (r : ℝ) (a b : Point) :
     (smul r a).add (smul r b) = smul r (a.add b) := by
-  sorry
+  simp [smul, add, mul_add]
 
 end Point
 
@@ -126,9 +126,33 @@ def midpoint (a b : StandardTwoSimplex) : StandardTwoSimplex
   sum_eq := by field_simp; linarith [a.sum_eq, b.sum_eq]
 
 def weightedAverage (lambda : Real) (lambda_nonneg : 0 ≤ lambda) (lambda_le : lambda ≤ 1)
-    (a b : StandardTwoSimplex) : StandardTwoSimplex :=
-  sorry
-
+    (a b : StandardTwoSimplex) : StandardTwoSimplex where
+  x := lambda * a.x + (1 - lambda) * b.x
+  y := lambda * a.y + (1 - lambda) * b.y
+  z := lambda * a.z + (1 - lambda) * b.z
+  x_nonneg := by
+    apply add_nonneg
+    apply mul_nonneg; apply lambda_nonneg; apply a.x_nonneg
+    apply mul_nonneg; linarith; apply b.x_nonneg
+  y_nonneg := by
+    apply add_nonneg
+    apply mul_nonneg; apply lambda_nonneg; apply a.y_nonneg
+    apply mul_nonneg; linarith; apply b.y_nonneg
+  z_nonneg := by
+    apply add_nonneg
+    apply mul_nonneg; apply lambda_nonneg; apply a.z_nonneg
+    apply mul_nonneg; linarith; apply b.z_nonneg
+  sum_eq := by
+    have h1 := a.sum_eq
+    have h2 := b.sum_eq
+    repeat rw [← add_assoc]
+    repeat rw [add_right_comm  _ _ (lambda * a.z)]
+    repeat rw [add_right_comm  _ _ (lambda * a.y)]
+    repeat rw [← mul_add lambda]
+    rw [h1, mul_one, add_assoc, add_assoc]
+    repeat rw [← mul_add (1 - lambda)]
+    rw [← add_assoc, h2]
+    ring_nf
 end
 
 end StandardTwoSimplex
@@ -154,6 +178,18 @@ def midpoint (n : ℕ) (a b : StandardSimplex n) : StandardSimplex n
     simp [div_eq_mul_inv, ← Finset.sum_mul, Finset.sum_add_distrib,
       a.sum_eq_one, b.sum_eq_one]
     field_simp
+
+def weightedAverage (lambda : Real) (lambda_nonneg : 0 ≤ lambda) (lambda_le : lambda ≤ 1) (n: ℕ) (a b : StandardSimplex n) : StandardSimplex n where
+  V i := lambda * a.V i + (1 - lambda) * b.V i
+  NonNeg := by
+    intro i
+    apply add_nonneg
+    apply mul_nonneg; apply lambda_nonneg; linarith [a.NonNeg i]
+    apply mul_nonneg; linarith; linarith [b.NonNeg i]
+  sum_eq_one := by
+    simp [Finset.sum_add_distrib, ← Finset.mul_sum]
+    rw [a.sum_eq_one, b.sum_eq_one]
+    linarith
 
 end StandardSimplex
 
@@ -206,4 +242,3 @@ variable (s : StdSimplex)
 #check s.2
 
 end
-
